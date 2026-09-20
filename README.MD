@@ -179,9 +179,53 @@ contract type as the dominant churn signal — consistent with the EDA
 findings. The 4 engineered features did not appear in the top 5; the raw
 underlying fields proved most directly useful to this particular tree.
 
-**7. Bonus work covered:**
-- Class imbalance handling (`class_weight='balanced'`), directly compared
-  against unweighted configurations to demonstrate its effect on recall
+**7. Bonus Work**
+
+Three bonus categories are suggested in the assignment brief: handling
+class imbalance, hyperparameter tuning, and comparing additional models.
+All three were done.
+
+*Class imbalance handling* — `class_weight='balanced'` was applied in
+Configs 3 & 4, and directly compared against the unweighted Configs 1 & 2
+in the Model Development section above. The effect is large: Recall
+roughly doubles (45% → 79%) once the minority (churn) class is weighted
+properly, at the cost of some precision — the exact tradeoff the business
+priority calls for.
+
+*Hyperparameter tuning* — rather than relying only on the four
+hand-picked configurations, a `GridSearchCV` search was run over
+`max_depth` (4, 6, 8, 10, None), `min_samples_leaf` (5, 10, 20, 30, 50),
+`criterion` (gini, entropy), and `class_weight` (balanced, None) — 100
+combinations, each evaluated with 5-fold cross-validation, optimizing for
+Recall. The search independently converged on `max_depth=6,
+min_samples_leaf=20, criterion='gini', class_weight='balanced'` — exactly
+Config 3 — with a cross-validated Recall of 0.7875, matching the held-out
+test Recall of 0.79. This is a useful confirmation: the manual comparison
+process in Model Development wasn't a lucky guess, it had already landed
+on the true optimum for this hyperparameter space.
+
+*Comparing additional models* — a Random Forest and a Logistic
+Regression were trained on the same preprocessed data and compared
+against the Decision Tree:
+
+| Model | Accuracy | Precision (Churn) | Recall (Churn) | F1 (Churn) |
+|---|---|---|---|---|
+| Decision Tree (Config 3, final) | 0.7383 | 0.50 | 0.79 | 0.62 |
+| Random Forest (balanced) | 0.7466 | 0.52 | 0.80 | 0.63 |
+| Logistic Regression (balanced) | 0.7379 | 0.51 | 0.79 | 0.62 |
+
+Random Forest edges out the Decision Tree slightly on every metric, and
+Logistic Regression performs almost identically despite not fully
+converging (features weren't scaled, which its `lbfgs` optimizer is
+sensitive to — scaling was intentionally skipped for a fast,
+apples-to-apples comparison rather than building out a separate scaled
+pipeline). **The Decision Tree (Config 3) remains the final model**, for
+two reasons beyond the marginal performance gap: the assignment
+specifically asks for a Decision Tree Classifier, and a single tree can be
+visualized and explained node-by-node to a non-technical retention team,
+which a 200-tree Random Forest ensemble cannot. Random Forest's small edge
+is worth noting as a natural next step if the interpretability requirement
+were relaxed in a future iteration.
 
 **8. Model Serving** — FastAPI REST API at `POST /predict`.
 
